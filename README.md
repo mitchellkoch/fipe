@@ -23,7 +23,8 @@ Use the `deftarget` macro to define how a target file should be produced. All ta
 
 ```clojure
 (ns example
-  (:use fipe.core :only [deftarget dep fipe]))
+  (:use fipe.core :only [deftarget dep fipe])
+  (:require [clojure.string :as str]))
 
 (deftarget "hello.txt"
   "hello")
