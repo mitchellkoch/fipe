@@ -11,6 +11,6 @@
                  [org.clojure/tools.reader "0.8.5"]
                  [clj-time "0.7.0"]
                  [org.flatland/ordered "1.5.2"]
-                 [wharf "0.1.0-SNAPSHOT"]]
+                 [wharf "0.1.0-20140625.232411-1"]]
   :scm {:name "git"
         :url "https://github.com/mitchellkoch/fipe"})
