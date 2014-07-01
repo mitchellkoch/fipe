@@ -1,6 +1,7 @@
 (ns fipe.core
   "File pipelines"
-  (:use [fipe.util])
+  (:use fipe.util
+        flatland.ordered.set)
   (:require [clojure.java.io :as io]
             [clojure.string :as str]
             [me.raynes.fs :as fs]
@@ -53,7 +54,7 @@
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;; File pipeline definitions
 
-(def fipe-target-names-all (atom []))
+(def fipe-target-names-all (atom (ordered-set)))
 (def fipe-targets-glob (atom {}))
 (def fipe-target!s (atom {}))
 (def fipe-targets (atom {}))

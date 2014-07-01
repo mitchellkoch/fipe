@@ -6,7 +6,8 @@
             [clojure.data.csv :as csv]
             [cheshire.core :as json]
             [me.raynes.fs :as fs]
-            [clojure.pprint :as pprint])
+            [clojure.pprint :as pprint]
+            [wharf.core :as wharf])
   (:import [java.io FileOutputStream ObjectOutputStream ObjectInputStream FileInputStream BufferedInputStream InputStream Writer]
            [java.util.zip GZIPInputStream GZIPOutputStream]))
 
@@ -43,7 +44,9 @@
      
      (.endsWith ext "json")
      (with-open [wrtr (io/writer filename)]
-       (.write wrtr (json/generate-string data {:pretty true})))
+       (.write wrtr (json/generate-string 
+                     (wharf/transform-keys (comp wharf/dash->underscore name)data)
+                     {:pretty true})))
 
      (.endsWith ext "tsv.gz")
      (with-open [wrtr (-> filename
@@ -83,16 +86,17 @@
         (.readObject rdr))
       ;; Else use character-input:
       (let [in (io/reader in)]
-        (if (= "edn" (last exts))
-          (let [in (java.io.PushbackReader. in)
-                edn-seq (repeatedly (partial edn/read {:eof :eof} in))]
-            (take-while (partial not= :eof) edn-seq))
-          ;; Else use line-based:
-          (let [in (line-seq in)]
-            (condp = (last exts)
-              "txt" in
-              "tsv" (->> in
-                         (map #(vec (str/split % #"\t")))
-                         (map #(map (fn [s] (str/trim s)) %)))
-              :else (throw+ "couldn't match extension" exts))))))))
+        (condp = (last exts)
+            "json" (wharf/transform-keys (comp keyword wharf/underscore->dash) (json/parsed-seq in))
+            "edn" (let [in (java.io.PushbackReader. in)
+                        edn-seq (repeatedly (partial edn/read {:eof :eof} in))]
+                    (take-while (partial not= :eof) edn-seq))
+            ;; else use line-based
+            (let [in (line-seq in)]
+              (condp = (last exts)
+                "txt" in
+                "tsv" (->> in
+                           (map #(vec (str/split % #"\t")))
+                           (map #(map (fn [s] (str/trim s)) %)))
+                :else (throw+ "couldn't match extension" exts))))))))
 
