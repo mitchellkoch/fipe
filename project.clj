@@ -1,4 +1,4 @@
-(defproject mitchellkoch/fipe "0.1.0"
+(defproject mitchellkoch/fipe "0.1.1-SNAPSHOT"
   :description "File pipeline management"
   :url "http://www.github.com/mitchellkoch/fipe"
   :license {:name "Eclipse Public License"

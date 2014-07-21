@@ -45,7 +45,7 @@
      (.endsWith ext "json")
      (with-open [wrtr (io/writer filename)]
        (.write wrtr (json/generate-string 
-                     (wharf/transform-keys (comp wharf/dash->underscore name)data)
+                     (wharf/transform-keys (comp wharf/dash->underscore name) data)
                      {:pretty true})))
 
      (.endsWith ext "tsv.gz")
@@ -88,6 +88,7 @@
       (let [in (io/reader in)]
         (condp = (last exts)
             "json" (wharf/transform-keys (comp keyword wharf/underscore->dash) (json/parsed-seq in))
+            "csv" (csv/read-csv in)
             "edn" (let [in (java.io.PushbackReader. in)
                         edn-seq (repeatedly (partial edn/read {:eof :eof} in))]
                     (take-while (partial not= :eof) edn-seq))
