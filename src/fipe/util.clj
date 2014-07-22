@@ -20,8 +20,10 @@
 (defn split-ext
   "Gives [prefix ext] with no . in between. Selects the longest possible extension, combining multiple ones into one."
   [file]
-  (let [filename (str file)]
-    (subvec (re-find #"(.*?)\.(.*)" filename) 1)))
+  (let [filename (str file)
+        match (re-find #"(.*?)\.(.*)" filename)]
+    (when match
+      (subvec match 1))))
 
 (defn write-to-file [file data & {:keys [as]}]
   (let [filename (str file)
