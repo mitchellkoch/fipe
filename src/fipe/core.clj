@@ -5,7 +5,8 @@
   (:require [clojure.java.io :as io]
             [clojure.string :as str]
             [me.raynes.fs :as fs]
-            [clj-time.core])
+            [clj-time.core]
+            [clj-progress.core :as progress])
   (:import [org.joda.time.format PeriodFormatterBuilder]
            org.joda.time.Interval))
 
@@ -41,15 +42,21 @@
         formatter (.toFormatter builder)]
     (.print formatter (.toPeriod interval))))
 
-(defn run [f]
-  (let [start-time (clj-time.core/now)
-        result (f)]
-    (println "--- done in" 
-             (interval->hms (clj-time.core/interval 
-                             start-time 
-                             (clj-time.core/now)))
-             "\n")
-    result))
+(defn run 
+  ([f] (run f {}))
+  ([f {:keys [with-progress]}]
+     (when with-progress
+       (progress/init (first with-progress) ((second with-progress))))
+     (let [start-time (clj-time.core/now)
+           result (f)]
+       (when with-progress
+         (progress/done))
+       (println "--- done in" 
+                (interval->hms (clj-time.core/interval 
+                                start-time 
+                                (clj-time.core/now)))
+                "\n")
+       result)))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;; File pipeline definitions
@@ -76,6 +83,7 @@
   ([target body] `(deftarget ~target {} ~body))
   ([target opts body]
      `(let [^String target# ~target
+            ;; Convert :from-same-dir to :from
             opts# (if (contains? ~opts :from-same-dir)
                     (dissoc 
                      (assoc ~opts :from (str (first (split-glob-str target#))
@@ -111,7 +119,7 @@
 (defn fipe [target]
   (fs/mkdirs (fs/parent (fipe-rel target)))
   ;; fipe called with a glob
-  (if-let [{:keys [target-fn from write-as]} (get @fipe-targets-glob target)]
+  (if-let [{:keys [target-fn from write-as with-progress]} (get @fipe-targets-glob target)]
     (doseq [source (fs/glob (fipe-rel from))]
       (let [[_ source-ext] (split-glob-str from)
             [target-parent-relpath target-ext] (split-glob-str target)]
@@ -120,29 +128,33 @@
             (binding [*target-basename* (str *basename-noext* target-ext)]
               (binding [*target* (io/file (fs/parent (fipe-rel target)) *target-basename*)]
                 (println "---" (str target-parent-relpath *target-basename*))
-                (run #(write-to-file *target* (target-fn) :as write-as))))))))
+                (run #(write-to-file *target* (target-fn) :as write-as)
+                     {:with-progress with-progress})))))))
 
     (do
       (println "---" target)
       (binding [*target* (fipe-rel target)
                 *target-basename* (fs/base-name target)]
         ;; single file matches a glob target case
-        (if-let [{:keys [target-fn from write-as deftarget-str]} 
+        (if-let [{:keys [target-fn from write-as with-progress deftarget-str]} 
                  (fipe-glob-match-single target)]
           (let [[source-parent-relpath source-ext] (split-glob-str from)
                 [_ target-ext] (split-glob-str deftarget-str)]
             (binding [*basename-noext* (fs/base-name target target-ext)]
               (binding [*source* (io/file (fipe-rel source-parent-relpath)
                                           (str *basename-noext* source-ext))]
-                (run #(write-to-file *target* (target-fn) :as write-as)))))
+                (run #(write-to-file *target* (target-fn) :as write-as)
+                     {:with-progress with-progress}))))
 
           ;; deftarget! case
-          (if-let [{:keys [target-fn]} (get @fipe-target!s target)]
-            (run target-fn)
+          (if-let [{:keys [target-fn with-progress]} (get @fipe-target!s target)]
+            (run target-fn
+                 {:with-progress with-progress})
 
             ;; plain deftarget case
-            (if-let [{:keys [target-fn write-as]} (get @fipe-targets target)]
-              (run #(write-to-file *target* (target-fn) :as write-as)))))))
+            (if-let [{:keys [target-fn write-as with-progress]} (get @fipe-targets target)]
+              (run #(write-to-file *target* (target-fn) :as write-as)
+                   {:with-progress with-progress}))))))
     
     ))
 
