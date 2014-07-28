@@ -64,6 +64,16 @@
          (doseq [entry (if (map? data) [data] data)]
            (pprint/pprint entry wrtr))))
 
+     (.endsWith ext "edn.gz")
+     (binding [*print-length* nil]
+       (with-open [^Writer wrtr (-> filename
+                                    io/output-stream
+                                    GZIPOutputStream.
+                                    io/writer)]
+         (binding [*out* wrtr]
+           (doseq [entry (if (map? data) [data] data)]
+             (prn entry)))))
+
      (.endsWith ext "ser.gz")
      (with-open [^ObjectOutputStream wrtr 
                  (-> filename
