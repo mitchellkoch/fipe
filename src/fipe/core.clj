@@ -42,6 +42,8 @@
         formatter (.toFormatter builder)]
     (.print formatter (.toPeriod interval))))
 
+(progress/set-progress-bar! ":header [:bar] :percent :done/:total :etas")
+
 (defn run 
   ([f] (run f {}))
   ([f {:keys [with-progress]}]
